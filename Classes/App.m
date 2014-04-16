@@ -25,21 +25,32 @@ NSString *defaultPath = @"/Applications/Sublime Text 2.app/Contents/SharedSuppor
         NSString* url  = [params objectForKey:@"url"];
         if (url) {
             NSString *file = [url stringByReplacingOccurrencesOfString:@"file://" withString: @""];
-            NSString *line = [params objectForKey:@"line"];
+            // TODO: support more than just www, maybe hook into limebox projects?
+            NSString *limebox = [url stringByReplacingOccurrencesOfString:@"limebox://tfb/trunk/www/" withString: @""];
             NSString *arg = nil;
-            if (line) {
-                arg = [NSString stringWithFormat:@"%@:%@", file, line];
+            NSArray *args = nil;
+
+            if ([file length] != [url length]) {
+                NSString *line = [params objectForKey:@"line"];
+                if (line) {
+                    arg = [NSString stringWithFormat:@"%@:%@", file, line];
+                } else {
+                    arg = [NSString stringWithFormat:@"%@", file];
+                }
+                args = [NSArray arrayWithObject:arg];
             } else {
-                arg = [NSString stringWithFormat:@"%@", file];
+                // TODO: support line numbers
+                arg = [NSString stringWithFormat:@"box_open_filepath_directly {\"path\": \"%@\"}", limebox];
+                args = [NSArray arrayWithObjects:@"--command", arg, nil];
             }
             
             NSTask *task = [[NSTask alloc] init];
             [task setLaunchPath:path];
-            [task setArguments:[NSArray arrayWithObjects:arg, nil]];
+            [task setArguments:args];
             [task launch];
             [task release];
             NSWorkspace *sharedWorkspace = [NSWorkspace sharedWorkspace];
-            NSString *appPath = [sharedWorkspace fullPathForApplication:@"Sublime Text 2"];
+            NSString *appPath = [sharedWorkspace fullPathForApplication:@"Sublime Text"];
             NSString *identifier = [[NSBundle bundleWithPath:appPath] bundleIdentifier];
             NSArray *selectedApps =
             [NSRunningApplication runningApplicationsWithBundleIdentifier:identifier];
@@ -55,6 +66,8 @@ NSString *defaultPath = @"/Applications/Sublime Text 2.app/Contents/SharedSuppor
 }
 
 -(IBAction)showPrefPanel:(id)sender {
+    // TODO: just have a radio, Sublime Text 2 vs Sublime Text 3, then we can build path from there.
+    // Or maybe File browser to select the right Sublime app bundle.
     if (path) {
         [textField setStringValue:path];
     } else {
